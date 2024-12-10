@@ -1,0 +1,4 @@
+Flask==3.1.0
+Flask-JWT-Extended==4.7.1
+pymongo==4.10.1
+requests==2.32.3

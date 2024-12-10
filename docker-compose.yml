@@ -1,0 +1,74 @@
+version: '3.8'
+
+services:
+  # MySQL Database for Expenses Service
+  expenses-db:
+    image: mysql:8.0
+    container_name: expenses_db
+    restart: always
+    environment:
+      MYSQL_ROOT_PASSWORD: root
+      MYSQL_DATABASE: expenses_db
+      MYSQL_USER: user
+      MYSQL_PASSWORD: password
+    ports:
+      - "3306:3306"
+    volumes:
+      - expenses-db-data:/var/lib/mysql
+      - ./init.sql:/docker-entrypoint-initdb.d/init.sql
+    networks:
+      - expenses-network
+
+  # Expenses Service (Go Application)
+  expenses-service:
+    build: ./exp-service-go-  # Path to the Go app directory
+    container_name: expenses_go_app
+    ports:
+      - "8080:8080"
+    depends_on:
+      - expenses-db
+    environment:
+      DB_HOST: expenses-db
+      DB_USER: root
+      DB_PASSWORD: root
+      DB_NAME: expenses_db
+    networks:
+      - expenses-network
+
+  # PostgreSQL Database for Expenses Insights Service
+
+ # insights-db:
+  #  image: postgres:13
+   # container_name: insights_db
+   # restart: always
+   # environment:
+    #  POSTGRES_PASSWORD: root
+    #  POSTGRES_DB: insights_db
+    #  POSTGRES_USER: user
+  #  ports:
+    #  - "5432:5432"
+   # volumes:
+   #   - insights-db-data:/var/lib/postgresql/data
+   # networks:
+   #   - expenses-network
+
+  # Expenses Insights Service (Flask Application)
+  insights-service:
+    build: ./expenses-Insights  # Path to the Flask app directory
+    container_name: expenses_insights_service
+    ports:
+      - "5000:5000"
+    depends_on:
+      #- insights-db
+      - expenses-service  # This ensures the Go app is ready before Flask starts
+    environment:
+      EXPENSES_SERVICE_URL: http://expenses-service:8080  # URL of the Go app for Flask to interact with
+    networks:
+      - expenses-network
+
+networks:
+  expenses-network:
+
+volumes:
+  expenses-db-data:
+  insights-db-data:
