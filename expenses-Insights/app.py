@@ -1,9 +1,11 @@
 from flask import Flask, jsonify, request
+import requests
 from datetime import datetime
 
 app = Flask(__name__)
 
 # Mock data for testing
+"""
 MOCK_EXPENSES = [
     {"expense": "Groceries", "amount": 50, "date": "2024-10-01", "category": "Food"},
     {"expense": "Dining Out", "amount": 30, "date": "2024-12-02", "category": "Food"},
@@ -12,6 +14,17 @@ MOCK_EXPENSES = [
     {"expense": "Internet", "amount": 60, "date": "2024-12-04", "category": "Utilities"},
     {"expense": "Movie Tickets", "amount": 20, "date": "2024-12-05", "category": "Entertainment"},
 ]
+"""
+# Helper Functions
+def fetch_expenses():
+    """Fetch expenses from the Expenses Service."""
+    try:
+        response = requests.get(f"http://localhost:8080/expenses")
+        response.raise_for_status()
+        return response.json()
+    except requests.exceptions.RequestException as e:
+        print(f"Error fetching expenses: {e}")
+        return []
 
 # Helper Functions
 def aggregate_expenses(expenses):
@@ -45,8 +58,11 @@ def summary():
     """Get total expenses and category summary for the current month."""
     # Mocking user_id and expenses
     user_id = "mock_user"
+    """change  expenses to get data from fetch_expenses() not MOCK_EXPENSES"""
+    expenses = fetch_expenses()
     current_month = datetime.now().strftime("%Y-%m")
-    filtered_expenses = [e for e in MOCK_EXPENSES if e["date"].startswith(current_month)]
+    """change filter expenses to get data from expenses not MOCK_EXPENSES"""
+    filtered_expenses = [e for e in expenses  if e["date"].startswith(current_month)] 
 
     total_expenses, category_summary = aggregate_expenses(filtered_expenses)
 
@@ -61,7 +77,8 @@ def charts():
     """Get data for pie and line charts."""
     # Mocking user_id and expenses
     user_id = "mock_user"
-    expenses = MOCK_EXPENSES
+    """change  expenses to get data from fetch_expenses() not MOCK_EXPENSES"""
+    expenses = fetch_expenses()
 
     # Pie Chart Data
     _, category_summary = aggregate_expenses(expenses)
@@ -82,7 +99,8 @@ def insights():
     """Get spending insights."""
     # Mocking user_id and expenses
     user_id = "mock_user"
-    expenses = MOCK_EXPENSES
+    """change  expenses to get data from fetch_expenses() not MOCK_EXPENSES"""
+    expenses = fetch_expenses()
 
     # Calculate largest spending category
     _, category_summary = aggregate_expenses(expenses)
