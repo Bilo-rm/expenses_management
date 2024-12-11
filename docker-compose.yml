@@ -66,9 +66,39 @@ services:
     networks:
       - expenses-network
 
+     # MongoDB for Auth Service
+  mongo:
+    image: mongo:6.0
+    container_name: mongo
+    ports:
+      - "27017:27017" # Expose MongoDB on the host for testing
+    volumes:
+      - mongo-data:/users/userDB
+    networks:
+      - expenses-network
+
+  # Auth Service
+  auth-service:
+    build:
+      context: ./auth  # Path to the Auth service directory
+      dockerfile: Dockerfile
+    container_name: auth_service
+    ports:
+      - "3000:3000" # Maps port 3000 of the host to port 3000 of the container
+    environment:
+      - MONGO_URI=mongodb://mongo:27017/userDB  # Connect to the MongoDB container
+      - JWT_SECRET=Hr9MwwFT32
+    depends_on:
+      - mongo
+    volumes:
+      - ./auth:/usr/src/app
+    networks:
+      - expenses-network
+
 networks:
   expenses-network:
 
 volumes:
   expenses-db-data:
   insights-db-data:
+  mongo-data:
