@@ -94,6 +94,20 @@ services:
       - ./auth:/usr/src/app
     networks:
       - expenses-network
+# API gateway Service
+  nginx:
+    image: nginx:latest
+    container_name: api_gateway
+    volumes:
+      - ./nginx.conf:/etc/nginx/nginx.conf:ro
+    ports:
+      - "80:80" # Expose Nginx on port 80
+    depends_on:
+      - expenses-service
+      - insights-service
+      - auth-service
+    networks:
+      - expenses-network
 
 networks:
   expenses-network:
