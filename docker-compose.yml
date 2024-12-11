@@ -15,27 +15,34 @@ services:
       - "3306:3306"
     volumes:
       - expenses-db-data:/var/lib/mysql
-      - ./init.sql:/docker-entrypoint-initdb.d/init.sql
     networks:
       - expenses-network
 
   # Expenses Service (Go Application)
   expenses-service:
     build: ./exp-service-go-  # Path to the Go app directory
-    container_name: expenses_go_app
-    ports:
-      - "8080:8080"
-    depends_on:
-      - expenses-db
     environment:
       DB_HOST: expenses-db
       DB_USER: root
       DB_PASSWORD: root
       DB_NAME: expenses_db
+    depends_on:
+      - expenses-db
     networks:
       - expenses-network
 
-  # PostgreSQL Database for Expenses Insights Service
+  # Define replicas for Expenses Service
+  expenses-service-1:
+    extends:
+      service: expenses-service
+    container_name: expenses_service_1
+
+  expenses-service-2:
+    extends:
+      service: expenses-service
+    container_name: expenses_service_2
+
+    # PostgreSQL Database for Expenses Insights Service
 
  # insights-db:
   #  image: postgres:13
@@ -52,21 +59,28 @@ services:
    # networks:
    #   - expenses-network
 
+
   # Expenses Insights Service (Flask Application)
   insights-service:
     build: ./expenses-Insights  # Path to the Flask app directory
-    container_name: expenses_insights_service
-    ports:
-      - "5000:5000"
-    depends_on:
-      #- insights-db
-      - expenses-service  # This ensures the Go app is ready before Flask starts
     environment:
-      EXPENSES_SERVICE_URL: http://expenses-service:8080  # URL of the Go app for Flask to interact with
+      EXPENSES_SERVICE_URL: http://expenses-service:8080
+    depends_on:
+      - expenses-service
     networks:
       - expenses-network
 
-     # MongoDB for Auth Service
+  insights-service-1:
+    extends:
+      service: insights-service
+    container_name: insights_service_1
+
+  insights-service-2:
+    extends:
+      service: insights-service
+    container_name: insights_service_2
+
+  # MongoDB for Auth Service
   mongo:
     image: mongo:6.0
     container_name: mongo
@@ -82,30 +96,39 @@ services:
     build:
       context: ./auth  # Path to the Auth service directory
       dockerfile: Dockerfile
-    container_name: auth_service
-    ports:
-      - "3000:3000" # Maps port 3000 of the host to port 3000 of the container
     environment:
-      - MONGO_URI=mongodb://mongo:27017/userDB  # Connect to the MongoDB container
+      - MONGO_URI=mongodb://mongo:27017/userDB
       - JWT_SECRET=Hr9MwwFT32
     depends_on:
       - mongo
-    volumes:
-      - ./auth:/usr/src/app
     networks:
       - expenses-network
-# API gateway Service
+
+  auth-service-1:
+    extends:
+      service: auth-service
+    container_name: auth_service_1
+
+  auth-service-2:
+    extends:
+      service: auth-service
+    container_name: auth_service_2
+
+  # Nginx API Gateway
   nginx:
     image: nginx:latest
     container_name: api_gateway
     volumes:
       - ./nginx.conf:/etc/nginx/nginx.conf:ro
     ports:
-      - "80:80" # Expose Nginx on port 80
+      - "80:80"
     depends_on:
-      - expenses-service
-      - insights-service
-      - auth-service
+      - expenses-service-1
+      - expenses-service-2
+      - insights-service-1
+      - insights-service-2
+      - auth-service-1
+      - auth-service-2
     networks:
       - expenses-network
 
@@ -114,5 +137,5 @@ networks:
 
 volumes:
   expenses-db-data:
-  insights-db-data:
   mongo-data:
+  #insights-db-data:
