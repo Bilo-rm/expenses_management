@@ -26,7 +26,7 @@ end
 -- Verify the JWT
 local jwt_obj = jwt:verify(secret, token)
 
-if not jwt_obj["verified"] then
+if not jwt_obj.verified then  -- fixed: use .verified instead of ["verified"]
     ngx.status = ngx.HTTP_UNAUTHORIZED
     ngx.say(cjson.encode({ message = "Invalid or expired token" }))
     ngx.log(ngx.ERR, "JWT verification failed")
@@ -34,4 +34,4 @@ if not jwt_obj["verified"] then
 end
 
 -- Token is valid, proceed to the backend service
-ngx.req.set_header("X-User-ID", jwt_obj["payload"]["user_id"])
+ngx.req.set_header("X-User-ID", jwt_obj.payload.user_id)  -- fixed: access the payload correctly

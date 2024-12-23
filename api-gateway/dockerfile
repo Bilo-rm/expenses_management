@@ -1,0 +1,31 @@
+# Use a smaller base image
+FROM node:18-slim
+
+# Set the working directory
+WORKDIR /usr/src/app
+
+# Copy package.json and package-lock.json
+COPY package*.json ./
+
+# Install production dependencies
+RUN npm install --only=production
+
+# Copy the source code
+COPY . .
+
+# Set environment variables
+ENV NODE_ENV=production
+
+# Expose the application port
+EXPOSE 4000
+
+# Add a healthcheck
+HEALTHCHECK --interval=30s --timeout=5s --start-period=5s --retries=3 \
+    CMD curl -f http://localhost:4000/health || exit 1
+
+# Use a non-root user for security
+RUN useradd -m appuser
+USER appuser
+
+# Start the application
+CMD ["npm", "start"]

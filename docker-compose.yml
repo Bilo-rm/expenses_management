@@ -92,23 +92,24 @@ services:
 
 
      # Nginx API Gateway
-     # Nginx API Gateway
   api-gateway:
-    image: nginx:latest
+    build: ./api-gateway
     container_name: api_gateway
     ports:
-      - "80:80"  # Expose Nginx on port 80
-    volumes:
-      - ./nginx.conf:/etc/nginx/nginx.conf  # Custom Nginx configuration
+      - "4000:4000"  # Expose API Gateway on port 4000
+    environment:
+      - JWT_SECRET=Hr9MwwFT32
     depends_on:
+      - auth-service
       - expenses-service
       - insights-service
-      - auth-service
     networks:
       - expenses-network
 
+
 networks:
   expenses-network:
+    driver: bridge
 
 volumes:
   expenses-db-data:
