@@ -4,23 +4,14 @@ from datetime import datetime
 
 app = Flask(__name__)
 
-# Mock data for testing
-"""
-MOCK_EXPENSES = [
-    {"expense": "Groceries", "amount": 50, "date": "2024-10-01", "category": "Food"},
-    {"expense": "Dining Out", "amount": 30, "date": "2024-12-02", "category": "Food"},
-    {"expense": "Gas", "amount": 40, "date": "2024-11-03", "category": "Transport"},
-    {"expense": "Electricity Bill", "amount": 100, "date": "2024-12-04", "category": "Utilities"},
-    {"expense": "Internet", "amount": 60, "date": "2024-12-04", "category": "Utilities"},
-    {"expense": "Movie Tickets", "amount": 20, "date": "2024-12-05", "category": "Entertainment"},
-]
-"""
 # Helper Functions
-def fetch_expenses():
+def fetch_expenses(token):
     """Fetch expenses from the Expenses Service."""
     try:
-        response = requests.get(f"http://localhost:8080/expenses")
+        headers = {"Authorization": f"Bearer {token}"}
+        response = requests.get(f"http://localhost:4000/api/expenses", headers=headers)
         response.raise_for_status()
+        print("Fetched Expenses:", response.json())  # Debug line
         return response.json()
     except requests.exceptions.RequestException as e:
         print(f"Error fetching expenses: {e}")
@@ -56,18 +47,16 @@ def calculate_trends(expenses):
 @app.route('/api/home/summary', methods=['GET'])
 def summary():
     """Get total expenses and category summary for the current month."""
-    # Mocking user_id and expenses
-    user_id = "mock_user"
-    """change  expenses to get data from fetch_expenses() not MOCK_EXPENSES"""
-    expenses = fetch_expenses()
+    # Extract token from request header
+    token = request.headers.get('Authorization').split("Bearer ")[-1]
+
+    expenses = fetch_expenses(token)
     current_month = datetime.now().strftime("%Y-%m")
-    """change filter expenses to get data from expenses not MOCK_EXPENSES"""
-    filtered_expenses = [e for e in expenses  if e["date"].startswith(current_month)] 
+    filtered_expenses = [e for e in expenses if e["date"].startswith(current_month)] 
 
     total_expenses, category_summary = aggregate_expenses(filtered_expenses)
 
     return jsonify({
-        "user_id": user_id,
         "total_expenses": total_expenses,
         "category_summary": category_summary
     }), 200
@@ -75,10 +64,10 @@ def summary():
 @app.route('/api/home/charts', methods=['GET'])
 def charts():
     """Get data for pie and line charts."""
-    # Mocking user_id and expenses
-    user_id = "mock_user"
-    """change  expenses to get data from fetch_expenses() not MOCK_EXPENSES"""
-    expenses = fetch_expenses()
+    # Extract token from request header
+    token = request.headers.get('Authorization').split("Bearer ")[-1]
+
+    expenses = fetch_expenses(token)
 
     # Pie Chart Data
     _, category_summary = aggregate_expenses(expenses)
@@ -89,7 +78,6 @@ def charts():
     line_chart = calculate_trends(expenses)
 
     return jsonify({
-        "user_id": user_id,
         "pie_chart": pie_chart,
         "line_chart": line_chart
     }), 200
@@ -97,10 +85,10 @@ def charts():
 @app.route('/api/home/insights', methods=['GET'])
 def insights():
     """Get spending insights."""
-    # Mocking user_id and expenses
-    user_id = "mock_user"
-    """change  expenses to get data from fetch_expenses() not MOCK_EXPENSES"""
-    expenses = fetch_expenses()
+    # Extract token from request header
+    token = request.headers.get('Authorization').split("Bearer ")[-1]
+
+    expenses = fetch_expenses(token)
 
     # Calculate largest spending category
     _, category_summary = aggregate_expenses(expenses)
@@ -112,7 +100,6 @@ def insights():
     highest_spending_days = trend_data[:3]  # Top 3 days
 
     return jsonify({
-        "user_id": user_id,
         "largest_spending_category": largest_spending_category,
         "highest_spending_days": highest_spending_days
     }), 200

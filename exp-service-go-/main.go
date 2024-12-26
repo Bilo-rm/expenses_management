@@ -18,6 +18,7 @@ type Expense struct {
 	Amount      float64 `json:"amount"`
 	Category    string  `json:"category"`
 	Date        string  `json:"date"`
+	UserID      string  `json:"user_id"` // Added to associate expenses with a user
 	CreatedAt   string  `json:"created_at"`
 }
 
@@ -25,7 +26,9 @@ type Expense struct {
 func initDB() {
 	var err error
 	// Connect to the MySQL database
-	dsn := "root:root@tcp(expenses_db:3306)/expenses_db"
+	//dsn := "root:root@tcp(expenses_db:3306)/expenses_db"
+	dsn := "root:1234@tcp(localhost:33061)/expenses_db"
+
 	db, err = sql.Open("mysql", dsn)
 	if err != nil {
 		log.Fatal(err)
@@ -45,12 +48,27 @@ func main() {
 	log.Fatal(http.ListenAndServe(":8080", nil))
 }
 
+// Middleware to extract user_id from headers
+func getUserIDFromHeader(r *http.Request) (string, error) {
+	userID := r.Header.Get("X-User-ID")
+	if userID == "" {
+		return "", http.ErrNoLocation
+	}
+	return userID, nil
+}
+
 // Handle GET/POST requests for /expenses
 func handleExpenses(w http.ResponseWriter, r *http.Request) {
+	userID, err := getUserIDFromHeader(r)
+	if err != nil {
+		http.Error(w, "Unauthorized: User ID not found in headers", http.StatusUnauthorized)
+		return
+	}
+
 	if r.Method == http.MethodGet {
-		getExpenses(w, r)
+		getExpenses(w, r, userID)
 	} else if r.Method == http.MethodPost {
-		addExpense(w, r)
+		addExpense(w, r, userID)
 	} else {
 		http.Error(w, "Invalid request method", http.StatusMethodNotAllowed)
 	}
@@ -64,19 +82,25 @@ func handleExpense(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	userID, err := getUserIDFromHeader(r)
+	if err != nil {
+		http.Error(w, "Unauthorized: User ID not found in headers", http.StatusUnauthorized)
+		return
+	}
+
 	switch r.Method {
 	case http.MethodPut:
-		updateExpense(w, r, id)
+		updateExpense(w, r, id, userID)
 	case http.MethodDelete:
-		deleteExpense(w, r, id)
+		deleteExpense(w, r, id, userID)
 	default:
 		http.Error(w, "Invalid request method", http.StatusMethodNotAllowed)
 	}
 }
 
-// Get all expenses
-func getExpenses(w http.ResponseWriter, r *http.Request) {
-	rows, err := db.Query("SELECT id, description, amount, category, date, created_at FROM expenses")
+// Get all expenses for a user
+func getExpenses(w http.ResponseWriter, r *http.Request, userID string) {
+	rows, err := db.Query("SELECT id, description, amount, category, date, user_id, created_at FROM expenses WHERE user_id = ?", userID)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
@@ -86,7 +110,7 @@ func getExpenses(w http.ResponseWriter, r *http.Request) {
 	var expenses []Expense
 	for rows.Next() {
 		var expense Expense
-		if err := rows.Scan(&expense.ID, &expense.Description, &expense.Amount, &expense.Category, &expense.Date, &expense.CreatedAt); err != nil {
+		if err := rows.Scan(&expense.ID, &expense.Description, &expense.Amount, &expense.Category, &expense.Date, &expense.UserID, &expense.CreatedAt); err != nil {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return
 		}
@@ -97,16 +121,19 @@ func getExpenses(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(expenses)
 }
 
-// Add a new expense
-func addExpense(w http.ResponseWriter, r *http.Request) {
+// Add a new expense for a user
+func addExpense(w http.ResponseWriter, r *http.Request, userID string) {
 	var expense Expense
 	if err := json.NewDecoder(r.Body).Decode(&expense); err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
 
-	_, err := db.Exec("INSERT INTO expenses (description, amount, category, date) VALUES (?, ?, ?, ?)",
-		expense.Description, expense.Amount, expense.Category, expense.Date)
+	// Assign the extracted userID to the expense
+	expense.UserID = userID
+
+	_, err := db.Exec("INSERT INTO expenses (description, amount, category, date, user_id) VALUES (?, ?, ?, ?, ?)",
+		expense.Description, expense.Amount, expense.Category, expense.Date, expense.UserID)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
@@ -116,16 +143,16 @@ func addExpense(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(expense)
 }
 
-// Update an expense
-func updateExpense(w http.ResponseWriter, r *http.Request, id string) {
+// Update an expense for a user
+func updateExpense(w http.ResponseWriter, r *http.Request, id string, userID string) {
 	var expense Expense
 	if err := json.NewDecoder(r.Body).Decode(&expense); err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
 
-	_, err := db.Exec("UPDATE expenses SET description = ?, amount = ?, category = ?, date = ? WHERE id = ?",
-		expense.Description, expense.Amount, expense.Category, expense.Date, id)
+	_, err := db.Exec("UPDATE expenses SET description = ?, amount = ?, category = ?, date = ? WHERE id = ? AND user_id = ?",
+		expense.Description, expense.Amount, expense.Category, expense.Date, id, userID)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
@@ -135,9 +162,9 @@ func updateExpense(w http.ResponseWriter, r *http.Request, id string) {
 	json.NewEncoder(w).Encode(expense)
 }
 
-// Delete an expense
-func deleteExpense(w http.ResponseWriter, r *http.Request, id string) {
-	_, err := db.Exec("DELETE FROM expenses WHERE id = ?", id)
+// Delete an expense for a user
+func deleteExpense(w http.ResponseWriter, r *http.Request, id string, userID string) {
+	_, err := db.Exec("DELETE FROM expenses WHERE id = ? AND user_id = ?", id, userID)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
