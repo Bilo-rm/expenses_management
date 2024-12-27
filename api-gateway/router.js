@@ -52,7 +52,10 @@ router.post('/auth/login', async (req, res) => {
 router.get('/user/profile', verifyToken, async (req, res) => {
     try {
         const response = await axios.get('http://localhost:3000/api/user/profile', {
-            headers: { 'Authorization': req.headers['authorization'] }
+            headers: { 'Authorization': req.headers['authorization'] 
+                ,
+                        'X-User-ID': req.userId, // Add the user ID to the headers
+            }
         });
         res.status(response.status).json(response.data);
     } catch (error) {
