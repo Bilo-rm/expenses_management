@@ -1,25 +1,26 @@
 import React, { useState } from "react";
-import { useNavigate } from "react-router-dom"; // Import for navigation
+import { useNavigate } from "react-router-dom";
 import api from "../services/api";
 
-const Login = () => {
-  const navigate = useNavigate(); // Initialize navigation
+const Login = ({ setToken }) => {
+  const navigate = useNavigate();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [error, setError] = useState(""); // State for handling error messages
+  const [error, setError] = useState("");
 
   const handleLogin = async (e) => {
     e.preventDefault();
     try {
       const response = await api.post("/auth/login", { email, password });
 
-      // Save token in localStorage or sessionStorage
-      localStorage.setItem("token", response.data.token);
+      // Save token and update state
+      const token = response.data.token;
+      localStorage.setItem("token", token);
+      setToken(token);
 
-      // Redirect to Home after successful login
-      navigate("/");
+      // Redirect to Home
+      navigate("/home");
     } catch (error) {
-      // Handle error and show user-friendly message
       setError("Invalid credentials. Please try again.");
     }
   };
@@ -48,14 +49,23 @@ const Login = () => {
             required
           />
         </div>
-        {error && <div className="text-red-500 mb-4">{error}</div>} {/* Display error message */}
+        {error && <div className="text-red-500 mb-4">{error}</div>}
         <button
           type="submit"
-          className="bg-blue-500 text-white px-4 py-2 rounded w-full"
+          className="bg-blue-500 text-white px-4 py-2 rounded w-full mb-4"
         >
           Login
         </button>
       </form>
+      <div className="text-center">
+        <p>Don't have an account?</p>
+        <button
+          onClick={() => navigate("/register")}
+          className="bg-gray-500 text-white px-4 py-2 rounded mt-2"
+        >
+          Register
+        </button>
+      </div>
     </div>
   );
 };

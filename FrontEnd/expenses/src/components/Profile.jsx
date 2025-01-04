@@ -9,14 +9,18 @@ const Profile = () => {
     updatedAt: "",
   });
   const [isEditing, setIsEditing] = useState(false);
+  const [error, setError] = useState("");
 
   useEffect(() => {
     const fetchProfile = async () => {
       try {
-        const response = await api.get("/user/profile"); // Fetch user profile
+        const token = localStorage.getItem("token"); // Retrieve token from storage
+        const response = await api.get("/user/profile", {
+          headers: { Authorization: `Bearer ${token}` },
+        });
         setProfile(response.data);
       } catch (error) {
-        alert("Failed to load profile data. Please try again later.");
+        setError("Failed to load profile data. Please try again later.");
       }
     };
     fetchProfile();
@@ -24,18 +28,30 @@ const Profile = () => {
 
   const handleUpdate = async (e) => {
     e.preventDefault();
+    setError("");
+
+    if (!profile.name || !profile.email) {
+      setError("Name and email cannot be empty.");
+      return;
+    }
+
     try {
-      const response = await api.put("/user/profile", profile); // Update user profile
+      const token = localStorage.getItem("token");
+      const response = await api.put("/user/profile", profile, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      setProfile(response.data);
       alert("Profile updated successfully!");
       setIsEditing(false);
     } catch (error) {
-      alert("Failed to update profile. Please try again.");
+      setError("Failed to update profile. Please try again.");
     }
   };
 
   return (
     <div className="p-6">
       <h1 className="text-2xl font-bold mb-4">Profile</h1>
+      {error && <p className="text-red-500 mb-4">{error}</p>}
       {!isEditing ? (
         <div>
           <p><strong>Name:</strong> {profile.name}</p>

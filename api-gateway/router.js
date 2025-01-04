@@ -97,7 +97,9 @@ router.post('/expenses', verifyToken, async (req, res) => {
 router.delete('/expenses/:id', verifyToken, async (req, res) => {
     try {
         const response = await axios.delete(`http://localhost:8080/expenses/${req.params.id}`, {
-            headers: { 'Authorization': req.headers['authorization'] }
+            headers: { 'Authorization': req.headers['authorization'],
+                'X-User-ID': req.userId, // Add the user ID to the headers**
+                 }
         });
         res.status(response.status).json(response.data);
     } catch (error) {
@@ -108,7 +110,9 @@ router.delete('/expenses/:id', verifyToken, async (req, res) => {
 router.put('/expenses/:id', verifyToken, async (req, res) => {
     try {
         const response = await axios.put(`http://localhost:8080/expenses/${req.params.id}`, req.body, {
-            headers: { 'Authorization': req.headers['authorization'] }
+            headers: { 'Authorization': req.headers['authorization'],
+                'X-User-ID': req.userId, // Add the user ID to the headers**
+                 }
         });
         res.status(response.status).json(response.data);
     } catch (error) {
