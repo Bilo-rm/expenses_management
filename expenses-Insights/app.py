@@ -1,8 +1,13 @@
 from flask import Flask, jsonify, request
 import requests
 from datetime import datetime
+import redis
+import json
+import hashlib
 
+# Initialize Flask app and Redis client
 app = Flask(__name__)
+redis_client = redis.StrictRedis(host='localhost', port=6379, db=0, decode_responses=True)
 
 # Helper Functions
 def fetch_expenses(token):
@@ -17,7 +22,6 @@ def fetch_expenses(token):
         print(f"Error fetching expenses: {e}")
         return []
 
-# Helper Functions
 def aggregate_expenses(expenses):
     """Aggregate expenses by category."""
     category_summary = {}
@@ -42,6 +46,22 @@ def calculate_trends(expenses):
     trend_data = [{"date": key, "total": value} for key, value in sorted(trend_data.items())]
     return trend_data
 
+def get_cache_key(token, endpoint):
+    """Generate a cache key based on the token and endpoint."""
+    key = f"{endpoint}:{token}"
+    return hashlib.md5(key.encode('utf-8')).hexdigest()
+
+def cache_data(key, data, expiration=3600):
+    """Cache the data in Redis."""
+    redis_client.setex(key, expiration, json.dumps(data))
+
+def get_cached_data(key):
+    """Get the cached data from Redis."""
+    cached_data = redis_client.get(key)
+    if cached_data:
+        return json.loads(cached_data)
+    return None
+
 # Endpoints
 
 @app.route('/api/home/summary', methods=['GET'])
@@ -50,22 +70,39 @@ def summary():
     # Extract token from request header
     token = request.headers.get('Authorization').split("Bearer ")[-1]
 
+    # Check if the data is cached
+    cache_key = get_cache_key(token, 'summary')
+    cached_data = get_cached_data(cache_key)
+    if cached_data:
+        return jsonify(cached_data), 200
+
     expenses = fetch_expenses(token)
     current_month = datetime.now().strftime("%Y-%m")
     filtered_expenses = [e for e in expenses if e["date"].startswith(current_month)] 
 
     total_expenses, category_summary = aggregate_expenses(filtered_expenses)
 
-    return jsonify({
+    result = {
         "total_expenses": total_expenses,
         "category_summary": category_summary
-    }), 200
+    }
+
+    # Cache the result
+    cache_data(cache_key, result)
+
+    return jsonify(result), 200
 
 @app.route('/api/home/charts', methods=['GET'])
 def charts():
     """Get data for pie and line charts."""
     # Extract token from request header
     token = request.headers.get('Authorization').split("Bearer ")[-1]
+
+    # Check if the data is cached
+    cache_key = get_cache_key(token, 'charts')
+    cached_data = get_cached_data(cache_key)
+    if cached_data:
+        return jsonify(cached_data), 200
 
     expenses = fetch_expenses(token)
 
@@ -77,16 +114,27 @@ def charts():
     # Line Chart Data
     line_chart = calculate_trends(expenses)
 
-    return jsonify({
+    result = {
         "pie_chart": pie_chart,
         "line_chart": line_chart
-    }), 200
+    }
+
+    # Cache the result
+    cache_data(cache_key, result)
+
+    return jsonify(result), 200
 
 @app.route('/api/home/insights', methods=['GET'])
 def insights():
     """Get spending insights."""
     # Extract token from request header
     token = request.headers.get('Authorization').split("Bearer ")[-1]
+
+    # Check if the data is cached
+    cache_key = get_cache_key(token, 'insights')
+    cached_data = get_cached_data(cache_key)
+    if cached_data:
+        return jsonify(cached_data), 200
 
     expenses = fetch_expenses(token)
 
@@ -99,10 +147,15 @@ def insights():
     trend_data.sort(key=lambda x: x["total"], reverse=True)
     highest_spending_days = trend_data[:3]  # Top 3 days
 
-    return jsonify({
+    result = {
         "largest_spending_category": largest_spending_category,
         "highest_spending_days": highest_spending_days
-    }), 200
+    }
+
+    # Cache the result
+    cache_data(cache_key, result)
+
+    return jsonify(result), 200
 
 # Run the app
 if __name__ == '__main__':
