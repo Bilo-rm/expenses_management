@@ -32,21 +32,7 @@ services:
      # DB_NAME: expenses_db
   #  networks:
    #   - expenses-network
-  # PostgreSQL Database for Expenses Insights Service
- # insights-db:
-  #  image: postgres:13
-   # container_name: insights_db
-   # restart: always
-   # environment:
-    #  POSTGRES_PASSWORD: root
-    #  POSTGRES_DB: insights_db
-    #  POSTGRES_USER: user
-  #  ports:
-    #  - "5432:5432"
-   # volumes:
-   #   - insights-db-data:/var/lib/postgresql/data
-   # networks:
-   #   - expenses-network
+
   # Expenses Insights Service (Flask Application)
   #insights-service:
     #build: ./expenses-Insights  # Path to the Flask app directory
