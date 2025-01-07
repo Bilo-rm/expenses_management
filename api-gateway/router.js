@@ -64,6 +64,22 @@ router.get('/user/profile', verifyToken, async (req, res) => {
 });
 
 
+// Add the PUT /profile route
+router.put('/user/profile', verifyToken, async (req, res) => {
+    try {
+        const response = await axios.put('http://localhost:3000/api/user/profile', req.body, {
+            headers: { 
+                'Authorization': req.headers['authorization'],
+                'X-User-ID': req.userId, // Add the user ID to the headers
+            }
+        });
+        res.status(response.status).json(response.data);
+    } catch (error) {
+        res.status(error.response?.status || 500).json(error.response?.data || { error: 'Gateway error' });
+    }
+});
+
+
 router.get('/expenses', verifyToken, async (req, res) => {
     try {
         const response = await axios.get('http://localhost:8080/expenses', {
