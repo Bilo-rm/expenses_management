@@ -1,0 +1,27 @@
+version: '3.8'
+
+services:
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - "3000:3000" # Maps port 3000 of the host to port 3000 of the container
+    environment:
+      - MONGO_URI=mongodb+srv://admin:admin123@cluster0.fbnjc.mongodb.net/userDB?retryWrites=true&w=majority&appName=Cluster0
+      - JWT_SECRET=Hr9MwwFT32
+    depends_on:
+      - mongo
+    volumes:
+      - .:/usr/src/app # Syncs local files with the container for development
+
+  mongo:
+    image: mongo:6.0
+    container_name: mongo
+    ports:
+      - "27017:27017" # Expose MongoDB on the host for testing
+    volumes:
+      - mongo-data:/users/userDB # Persist MongoDB data
+
+volumes:
+  mongo-data: # Volume to persist MongoDB data
