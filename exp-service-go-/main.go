@@ -117,6 +117,11 @@ func getExpenses(w http.ResponseWriter, r *http.Request, userID string) {
 		expenses = append(expenses, expense)
 	}
 
+	// Check if no expenses were found and return an empty array
+	if len(expenses) == 0 {
+		expenses = []Expense{}
+	}
+
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(expenses)
 }

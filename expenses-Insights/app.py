@@ -4,20 +4,67 @@ from datetime import datetime
 import redis
 import json
 import hashlib
+import mysql.connector
+from mysql.connector import Error
 
 # Initialize Flask app and Redis client
 app = Flask(__name__)
 redis_client = redis.StrictRedis(host='localhost', port=6379, db=0, decode_responses=True)
 
+# Database Connection
+def get_db_connection():
+    try:
+        connection = mysql.connector.connect(
+            host="localhost",
+            user="root",  # replace with your MySQL username
+            password="1234",  # replace with your MySQL password
+            database="expense_manager"  # your MySQL database name
+        )
+        return connection
+    except Error as e:
+        print(f"Error connecting to MySQL: {e}")
+        return None
+
+def save_expenses_to_db(expenses):
+    """Save raw expenses data to MySQL database."""
+    connection = get_db_connection()
+    if connection:
+        cursor = connection.cursor()
+
+        insert_query = """
+        INSERT INTO expenses (category, amount, date, description)
+        VALUES (%s, %s, %s, %s)
+        """
+
+        try:
+            for expense in expenses:
+                data = (expense.get("category", "Other"), 
+                        expense.get("amount", 0),
+                        expense.get("date", None),
+                        expense.get("description", ""))
+                cursor.execute(insert_query, data)
+            connection.commit()
+            print(f"Inserted {cursor.rowcount} rows into expenses table.")
+        except Error as e:
+            print(f"Error inserting data: {e}")
+        finally:
+            cursor.close()
+            connection.close()
+
 # Helper Functions
 def fetch_expenses(token):
-    """Fetch expenses from the Expenses Service."""
+    """Fetch expenses from the Expenses Service and save to the database."""
     try:
         headers = {"Authorization": f"Bearer {token}"}
         response = requests.get(f"http://localhost:4000/api/expenses", headers=headers)
         response.raise_for_status()
-        print("Fetched Expenses:", response.json())  # Debug line
-        return response.json()
+        expenses = response.json()
+        
+        # Save the fetched expenses into the database
+        save_expenses_to_db(expenses)
+
+        print("Fetched and saved expenses:", expenses)  # Debug line
+        return expenses
     except requests.exceptions.RequestException as e:
         print(f"Error fetching expenses: {e}")
         return []
@@ -63,14 +110,10 @@ def get_cached_data(key):
     return None
 
 # Endpoints
-
 @app.route('/api/home/summary', methods=['GET'])
 def summary():
     """Get total expenses and category summary for the current month."""
-    # Extract token from request header
     token = request.headers.get('Authorization').split("Bearer ")[-1]
-
-    # Check if the data is cached
     cache_key = get_cache_key(token, 'summary')
     cached_data = get_cached_data(cache_key)
     if cached_data:
@@ -87,7 +130,6 @@ def summary():
         "category_summary": category_summary
     }
 
-    # Cache the result
     cache_data(cache_key, result)
 
     return jsonify(result), 200
@@ -95,10 +137,7 @@ def summary():
 @app.route('/api/home/charts', methods=['GET'])
 def charts():
     """Get data for pie and line charts."""
-    # Extract token from request header
     token = request.headers.get('Authorization').split("Bearer ")[-1]
-
-    # Check if the data is cached
     cache_key = get_cache_key(token, 'charts')
     cached_data = get_cached_data(cache_key)
     if cached_data:
@@ -106,12 +145,10 @@ def charts():
 
     expenses = fetch_expenses(token)
 
-    # Pie Chart Data
     _, category_summary = aggregate_expenses(expenses)
     total_expense = sum(category_summary.values())
     pie_chart = {k: (v / total_expense) * 100 for k, v in category_summary.items()}
 
-    # Line Chart Data
     line_chart = calculate_trends(expenses)
 
     result = {
@@ -119,7 +156,6 @@ def charts():
         "line_chart": line_chart
     }
 
-    # Cache the result
     cache_data(cache_key, result)
 
     return jsonify(result), 200
@@ -127,10 +163,7 @@ def charts():
 @app.route('/api/home/insights', methods=['GET'])
 def insights():
     """Get spending insights."""
-    # Extract token from request header
     token = request.headers.get('Authorization').split("Bearer ")[-1]
-
-    # Check if the data is cached
     cache_key = get_cache_key(token, 'insights')
     cached_data = get_cached_data(cache_key)
     if cached_data:
@@ -138,21 +171,18 @@ def insights():
 
     expenses = fetch_expenses(token)
 
-    # Calculate largest spending category
     _, category_summary = aggregate_expenses(expenses)
     largest_spending_category = max(category_summary, key=category_summary.get)
 
-    # Calculate days with highest spending
     trend_data = calculate_trends(expenses)
     trend_data.sort(key=lambda x: x["total"], reverse=True)
-    highest_spending_days = trend_data[:3]  # Top 3 days
+    highest_spending_days = trend_data[:3]
 
     result = {
         "largest_spending_category": largest_spending_category,
         "highest_spending_days": highest_spending_days
     }
 
-    # Cache the result
     cache_data(cache_key, result)
 
     return jsonify(result), 200
