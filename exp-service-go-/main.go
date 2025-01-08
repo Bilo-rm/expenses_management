@@ -27,7 +27,7 @@ func initDB() {
 	var err error
 	// Connect to the MySQL database
 	//dsn := "root:root@tcp(expenses_db:3306)/expenses_db"
-	dsn := "root:1234@tcp(localhost:33061)/expenses_db"
+	dsn := "root:root@tcp(localhost:3306)/expenses_db"
 
 	db, err = sql.Open("mysql", dsn)
 	if err != nil {

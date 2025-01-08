@@ -20,34 +20,57 @@ const Register = () => {
   };
 
   return (
-    <div className="flex justify-center items-center h-screen">
-      <form onSubmit={handleRegister} className="bg-gray-100 p-6 rounded shadow-md">
-        <h2 className="text-2xl font-bold mb-4">Register</h2>
-        <input
-          type="text"
-          placeholder="Name"
-          value={name}
-          onChange={(e) => setName(e.target.value)}
-          className="block w-full mb-4 p-2 border rounded"
-        />
-        <input
-          type="email"
-          placeholder="Email"
-          value={email}
-          onChange={(e) => setEmail(e.target.value)}
-          className="block w-full mb-4 p-2 border rounded"
-        />
-        <input
-          type="password"
-          placeholder="Password"
-          value={password}
-          onChange={(e) => setPassword(e.target.value)}
-          className="block w-full mb-4 p-2 border rounded"
-        />
-        <button type="submit" className="bg-blue-500 text-white px-4 py-2 rounded">
-          Register
-        </button>
-      </form>
+    <div className="flex justify-center items-center min-h-screen bg-gray-50">
+      <div className="bg-white p-8 rounded-lg shadow-lg w-96">
+        <h2 className="text-3xl font-semibold text-center mb-6">Register</h2>
+        <form onSubmit={handleRegister}>
+          <div className="mb-4">
+            <label className="block text-sm font-medium text-gray-600">Name</label>
+            <input
+              type="text"
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              className="w-full p-3 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+              required
+            />
+          </div>
+          <div className="mb-4">
+            <label className="block text-sm font-medium text-gray-600">Email</label>
+            <input
+              type="email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              className="w-full p-3 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+              required
+            />
+          </div>
+          <div className="mb-6">
+            <label className="block text-sm font-medium text-gray-600">Password</label>
+            <input
+              type="password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              className="w-full p-3 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+              required
+            />
+          </div>
+          <button
+            type="submit"
+            className="w-full bg-blue-500 text-white py-2 rounded-md hover:bg-blue-600 focus:outline-none"
+          >
+            Register
+          </button>
+        </form>
+        <div className="text-center mt-4">
+          <p className="text-sm">Already have an account?</p>
+          <button
+            onClick={() => navigate("/")}
+            className="text-blue-500 text-sm mt-1 hover:underline"
+          >
+            Login here
+          </button>
+        </div>
+      </div>
     </div>
   );
 };

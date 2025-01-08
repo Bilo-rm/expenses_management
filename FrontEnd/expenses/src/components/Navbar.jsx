@@ -11,17 +11,43 @@ const Navbar = ({ setToken }) => {
   };
 
   return (
-    <nav className="bg-blue-500 p-4 text-white">
-      <ul className="flex justify-around">
-        <li><Link to="/home">Home</Link></li>
-        <li><Link to="/expenses">Expenses</Link></li>
-        <li><Link to="/profile">Profile</Link></li>
-        <li>
-          <button onClick={handleLogout} className="bg-red-500 px-3 py-1 rounded">
-            Logout
-          </button>
-        </li>
-      </ul>
+    <nav className="bg-blue-600 p-4 shadow-lg">
+      <div className="max-w-6xl mx-auto flex justify-between items-center">
+        <ul className="flex space-x-8 text-lg font-semibold">
+          <li>
+            <Link
+              to="/home"
+              className="text-white hover:text-gray-200 transition-all duration-300"
+            >
+              Home
+            </Link>
+          </li>
+          <li>
+            <Link
+              to="/expenses"
+              className="text-white hover:text-gray-200 transition-all duration-300"
+            >
+              Expenses
+            </Link>
+          </li>
+          <li>
+            <Link
+              to="/profile"
+              className="text-white hover:text-gray-200 transition-all duration-300"
+            >
+              Profile
+            </Link>
+          </li>
+        </ul>
+
+        {/* Logout Button */}
+        <button
+          onClick={handleLogout}
+          className="bg-red-500 text-white px-4 py-2 rounded-lg hover:bg-red-600 transition-all duration-300"
+        >
+          Logout
+        </button>
+      </div>
     </nav>
   );
 };
